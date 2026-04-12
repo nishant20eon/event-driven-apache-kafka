@@ -49,8 +49,7 @@ public class ProductServiceImpl implements ProductService {
                 LOGGER.info("Product created event sent successfully for product ID: " + result.getRecordMetadata());
             }
         });
-        // Wait for the future to complete , kind of blocking the thread until the event is sent, you can choose to handle it asynchronously if needed
-        future.join();
+// Asysnchronously log the event sending result without blocking the main thread
         LOGGER.info("Product created event sent successfully for product ID: " + productId);
         return productId;
 
