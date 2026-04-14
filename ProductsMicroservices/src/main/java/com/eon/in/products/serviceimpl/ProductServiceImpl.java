@@ -49,13 +49,13 @@ public class ProductServiceImpl implements ProductService {
                 LOGGER.info("Product created event sent successfully for product ID: " + result.getRecordMetadata());
             }
         });
-// Asysnchronously log the event sending result without blocking the main thread
-        LOGGER.info("Product created event sent successfully for product ID: " + productId);
+        // Wait for the future to complete , kind of blocking the thread until the event is sent, you can choose to handle it asynchronously if needed
+        // Note: In a real application, you might want to handle this more gracefully (e.g., by returning a response immediately and handling the event sending in the background)
+        // For simplicity, we will just block here until the event is sent using future.join(), but be aware that this can lead to performance issues if the Kafka broker is slow or unavailable
+        LOGGER.info("Synchronously waiting for the product created event to be sent for product ID: " + productId);
+        future.join();
+        LOGGER.info("Finished waiting for the product created event to be sent for product ID: " + productId);
         return productId;
-
-
-
-
 
     }
 }
