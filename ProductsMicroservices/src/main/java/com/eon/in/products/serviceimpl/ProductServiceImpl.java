@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -24,7 +25,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public String createProduct(CreateProductRestModel createProductRestModel) {
+    public String createProduct(CreateProductRestModel createProductRestModel) throws ExecutionException, InterruptedException {
 
         String productId = UUID.randomUUID().toString();
 
@@ -37,24 +38,19 @@ public class ProductServiceImpl implements ProductService {
                 productId
         );
 
-        // Publish the event to Kafka
-        CompletableFuture<SendResult<String,ProductCreatedEvent>> future = kafkaTemplate.send("products-created-events-topic",productId, productCreatedEvent);
+        LOGGER.info("Before publishing a ProductCreatedEvent to Kafka: {}", productCreatedEvent);
+        // Publish the event to Kafka, and wait for the send operation to complete before returning the product ID (synchronous send)
+        SendResult<String,ProductCreatedEvent> result = kafkaTemplate.send("products-created-events-topic",productId, productCreatedEvent).get();
 
-        future.whenComplete((result, ex) -> {
-            if (ex != null) {
-                // Handle the exception (e.g., log it, retry, etc.)
-                LOGGER.error("Failed to send product created event: " + ex.getMessage());
-            } else {
-                // Optionally, you can log the successful send result
-                LOGGER.info("Product created event sent successfully for product ID: " + result.getRecordMetadata());
-            }
-        });
-        // Wait for the future to complete , kind of blocking the thread until the event is sent, you can choose to handle it asynchronously if needed
-        // Note: In a real application, you might want to handle this more gracefully (e.g., by returning a response immediately and handling the event sending in the background)
-        // For simplicity, we will just block here until the event is sent using future.join(), but be aware that this can lead to performance issues if the Kafka broker is slow or unavailable
-        LOGGER.info("Synchronously waiting for the product created event to be sent for product ID: " + productId);
-        future.join();
-        LOGGER.info("Finished waiting for the product created event to be sent for product ID: " + productId);
+        LOGGER.info("Partition: {}, Offset: {}, Timestamp: {}, Topic: {}",
+                result.getRecordMetadata().partition(),
+                result.getRecordMetadata().offset(),
+                result.getRecordMetadata().timestamp(),
+                result.getRecordMetadata().topic()
+        );
+
+        LOGGER.info("After publishing a ProductCreatedEvent to Kafka: {}", productCreatedEvent);
+
         return productId;
 
     }
