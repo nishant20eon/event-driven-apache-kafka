@@ -1,5 +1,6 @@
 package com.eon.in.products.controller;
 
+import com.eon.in.products.error.ErrorMessage;
 import com.eon.in.products.model.CreateProductRestModel;
 import com.eon.in.products.service.ProductService;
 import org.slf4j.Logger;
@@ -10,6 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Date;
 
 @RestController
 @RequestMapping("/products")  // Base URL for all product-related endpoints
@@ -26,7 +29,16 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<String> createProduct(@RequestBody CreateProductRestModel product) {
         // Logic to create a new product
-        String productId = productService.createProduct(product);
+        String productId;
+        try {
+            productId = productService.createProduct(product);
+
+        } catch (Exception e) {
+            // e.printStackTrace();
+            LOGGER.error("Error creating product: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorMessage(new Date(), "Failed to create product", e.getMessage()).toString());
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(productId);
     }
 }
